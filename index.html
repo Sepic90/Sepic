@@ -35,15 +35,15 @@
       getDownloadURL
     } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
 
-    // REPLACE WITH YOUR FIREBASE CONFIG
+    // FIREBASE CONFIG
     const firebaseConfig = {
-	  apiKey: "AIzaSyDlY-8BMRUH0GxPSIBRuExCX2cL9E9zd3Q",
-	  authDomain: "sepic-426e1.firebaseapp.com",
-	  projectId: "sepic-426e1",
-	  storageBucket: "sepic-426e1.firebasestorage.app",
-	  messagingSenderId: "233022179085",
-	  appId: "1:233022179085:web:2a9c92c3e6aaac462c5244"
-	};
+      apiKey: "AIzaSyDlY-8BMRUH0GxPSIBRuExCX2cL9E9zd3Q",
+      authDomain: "sepic-426e1.firebaseapp.com",
+      projectId: "sepic-426e1",
+      storageBucket: "sepic-426e1.firebasestorage.app",
+      messagingSenderId: "233022179085",
+      appId: "1:233022179085:web:2a9c92c3e6aaac462c5244"
+    };
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
@@ -58,6 +58,7 @@
         this.showAdmin = false;
         this.editingLink = null;
         this.uploading = false;
+        this.newLogoUrl = '';
         this.init();
       }
 
@@ -71,15 +72,22 @@
 
       async fetchLinks() {
         try {
-          const q = query(collection(db, 'links'), orderBy('createdAt', 'asc'));
-          const querySnapshot = await getDocs(q);
+          const linksCollection = collection(db, 'links');
+          const querySnapshot = await getDocs(linksCollection);
           this.links = querySnapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
           }));
+          // Sort by createdAt in JavaScript instead
+          this.links.sort((a, b) => {
+            const aTime = a.createdAt?.toMillis() || 0;
+            const bTime = b.createdAt?.toMillis() || 0;
+            return aTime - bTime;
+          });
           this.render();
         } catch (err) {
           console.error('Error fetching links:', err);
+          alert('Error loading links: ' + err.message);
         }
       }
 
@@ -101,7 +109,7 @@
         if (!file) return null;
         
         this.uploading = true;
-        this.render();
+        // Don't render - just update button text if needed
         
         try {
           const storageRef = ref(storage, `logos/${Date.now()}_${file.name}`);
@@ -111,25 +119,32 @@
           return url;
         } catch (err) {
           console.error('Error uploading logo:', err);
+          alert('Error uploading logo: ' + err.message);
           this.uploading = false;
           return null;
         }
       }
 
       async handleAddLink(name, url, logo, isPublic) {
-        if (!name || !url) return;
+        if (!name || !url) {
+          alert('Please fill in both name and URL');
+          return;
+        }
         
         try {
+          console.log('Adding link:', { name, url, logo, isPublic });
           await addDoc(collection(db, 'links'), {
             name: name.toUpperCase(),
             url: url,
-            logo: logo,
+            logo: logo || '',
             isPublic: isPublic,
             createdAt: new Date()
           });
+          console.log('Link added successfully');
           await this.fetchLinks();
         } catch (err) {
           console.error('Error adding link:', err);
+          alert('Error adding link: ' + err.message);
         }
       }
 
@@ -314,13 +329,13 @@
               ${!this.user ? `
                 <div style="animation-delay: 0.4s;" class="fade-in">
                   <div style="max-width: 20rem;">
-                    <form id="loginForm" style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div style="display: flex; flex-direction: column; gap: 1rem;">
                       <input type="email" id="email" placeholder="EMAIL" class="input-field" required />
                       <input type="password" id="password" placeholder="PASSWORD" class="input-field" required />
-                      <button type="submit" class="btn-minimal" style="text-align: left; margin-top: 1rem; font-size: 0.875rem;">
+                      <button onclick="app.doLogin()" class="btn-minimal" style="text-align: left; margin-top: 1rem; font-size: 0.875rem;">
                         ENTER
                       </button>
-                    </form>
+                    </div>
                   </div>
                 </div>
               ` : ''}
@@ -332,14 +347,14 @@
                     <button class="admin-text" onclick="app.handleLogout();">LOGOUT</button>
                   </div>
 
-                  <form id="addLinkForm" style="max-width: 28rem; display: flex; flex-direction: column; gap: 1rem;">
+                  <div style="max-width: 28rem; display: flex; flex-direction: column; gap: 1rem;">
                     <div class="label-text" style="font-size: 0.75rem; margin-bottom: 1.5rem;">ADD NEW LINK</div>
-                    <input type="text" id="newName" placeholder="LINK TEXT" class="input-field" required />
-                    <input type="url" id="newUrl" placeholder="URL" class="input-field" required />
+                    <input type="text" id="newName" placeholder="LINK TEXT" class="input-field" />
+                    <input type="url" id="newUrl" placeholder="URL" class="input-field" />
                     <div style="padding-top: 0.5rem;">
                       <label class="btn-minimal" style="font-size: 0.75rem; cursor: pointer;">
                         ${this.uploading ? 'UPLOADING...' : 'UPLOAD LOGO'}
-                        <input type="file" id="newLogo" accept="image/png,image/jpeg,image/svg+xml" style="display: none;" ${this.uploading ? 'disabled' : ''} />
+                        <input type="file" id="newLogo" accept="image/png,image/jpeg,image/svg+xml" onchange="app.handleLogoUpload(event, false)" style="display: none;" ${this.uploading ? 'disabled' : ''} />
                       </label>
                       <span id="logoStatus" class="label-text" style="margin-left: 1rem; font-size: 0.75rem;"></span>
                     </div>
@@ -347,10 +362,10 @@
                       <input type="checkbox" id="newPrivate" style="margin-right: 0.75rem;" />
                       PRIVATE
                     </label>
-                    <button type="submit" class="btn-minimal" style="padding-top: 1rem; font-size: 0.875rem;" ${this.uploading ? 'disabled' : ''}>
+                    <button onclick="app.submitAddLink()" class="btn-minimal" style="padding-top: 1rem; font-size: 0.875rem;" ${this.uploading ? 'disabled' : ''}>
                       ADD
                     </button>
-                  </form>
+                  </div>
 
                   <div style="padding-top: 2rem; border-top: 1px solid rgba(255, 255, 255, 0.2); display: flex; flex-direction: column; gap: 1.5rem;">
                     <div class="label-text" style="font-size: 0.75rem; margin-bottom: 1.5rem;">ALL LINKS</div>
@@ -370,14 +385,14 @@
                   </div>
 
                   ${this.editingLink ? `
-                    <form id="editLinkForm" style="max-width: 28rem; padding-top: 2rem; border-top: 1px solid rgba(255, 255, 255, 0.2); display: flex; flex-direction: column; gap: 1rem;">
+                    <div style="max-width: 28rem; padding-top: 2rem; border-top: 1px solid rgba(255, 255, 255, 0.2); display: flex; flex-direction: column; gap: 1rem;">
                       <div class="label-text" style="font-size: 0.75rem; margin-bottom: 1.5rem;">EDIT LINK</div>
-                      <input type="text" id="editName" value="${this.editingLink.name}" placeholder="LINK TEXT" class="input-field" required />
-                      <input type="url" id="editUrl" value="${this.editingLink.url}" placeholder="URL" class="input-field" required />
+                      <input type="text" id="editName" value="${this.editingLink.name}" placeholder="LINK TEXT" class="input-field" />
+                      <input type="url" id="editUrl" value="${this.editingLink.url}" placeholder="URL" class="input-field" />
                       <div style="padding-top: 0.5rem;">
                         <label class="btn-minimal" style="font-size: 0.75rem; cursor: pointer;">
                           ${this.uploading ? 'UPLOADING...' : (this.editingLink.logo ? 'CHANGE LOGO' : 'UPLOAD LOGO')}
-                          <input type="file" id="editLogo" accept="image/png,image/jpeg,image/svg+xml" style="display: none;" ${this.uploading ? 'disabled' : ''} />
+                          <input type="file" id="editLogo" accept="image/png,image/jpeg,image/svg+xml" onchange="app.handleLogoUpload(event, true)" style="display: none;" ${this.uploading ? 'disabled' : ''} />
                         </label>
                         <span id="editLogoStatus" class="label-text" style="margin-left: 1rem; font-size: 0.75rem;"></span>
                       </div>
@@ -386,77 +401,68 @@
                         PRIVATE
                       </label>
                       <div style="display: flex; gap: 1.5rem; padding-top: 1rem; font-size: 0.875rem;">
-                        <button type="submit" class="btn-minimal" ${this.uploading ? 'disabled' : ''}>SAVE</button>
-                        <button type="button" class="btn-minimal admin-text" onclick="app.editingLink = null; app.render();">CANCEL</button>
+                        <button onclick="app.submitEditLink()" class="btn-minimal" ${this.uploading ? 'disabled' : ''}>SAVE</button>
+                        <button onclick="app.editingLink = null; app.render();" class="btn-minimal admin-text">CANCEL</button>
                       </div>
-                    </form>
+                    </div>
                   ` : ''}
                 </div>
               ` : ''}
             </div>
           </div>
         `;
+      }
 
-        // Event listeners
-        const loginForm = document.getElementById('loginForm');
-        if (loginForm) {
-          loginForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            this.handleLogin(email, password);
-          });
+      async doLogin() {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        await this.handleLogin(email, password);
+      }
+
+      async handleLogoUpload(event, isEdit) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        console.log('Uploading logo:', file.name);
+        const statusEl = isEdit ? document.getElementById('editLogoStatus') : document.getElementById('logoStatus');
+        if (statusEl) statusEl.textContent = 'UPLOADING...';
+        
+        const url = await this.uploadLogo(file);
+        
+        if (url) {
+          console.log('Logo uploaded successfully:', url);
+          if (isEdit) {
+            this.editingLink.logo = url;
+            if (statusEl) statusEl.textContent = 'LOGO UPLOADED';
+          } else {
+            this.newLogoUrl = url;
+            if (statusEl) statusEl.textContent = 'LOGO UPLOADED';
+          }
+        } else {
+          if (statusEl) statusEl.textContent = 'UPLOAD FAILED';
         }
+      }
 
-        const addLinkForm = document.getElementById('addLinkForm');
-        if (addLinkForm) {
-          let uploadedLogoUrl = '';
-          
-          const logoInput = document.getElementById('newLogo');
-          logoInput.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (file) {
-              uploadedLogoUrl = await this.uploadLogo(file);
-              if (uploadedLogoUrl) {
-                document.getElementById('logoStatus').textContent = 'LOGO UPLOADED';
-              }
-            }
-          });
+      async submitAddLink() {
+        console.log('submitAddLink called');
+        const name = document.getElementById('newName').value;
+        const url = document.getElementById('newUrl').value;
+        const isPrivate = document.getElementById('newPrivate').checked;
+        console.log('Form values:', { name, url, isPrivate, logo: this.newLogoUrl });
+        await this.handleAddLink(name, url, this.newLogoUrl || '', !isPrivate);
+        // Clear form
+        document.getElementById('newName').value = '';
+        document.getElementById('newUrl').value = '';
+        document.getElementById('newPrivate').checked = false;
+        document.getElementById('logoStatus').textContent = '';
+        this.newLogoUrl = '';
+      }
 
-          addLinkForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const name = document.getElementById('newName').value;
-            const url = document.getElementById('newUrl').value;
-            const isPrivate = document.getElementById('newPrivate').checked;
-            await this.handleAddLink(name, url, uploadedLogoUrl, !isPrivate);
-            addLinkForm.reset();
-            uploadedLogoUrl = '';
-          });
-        }
-
-        const editLinkForm = document.getElementById('editLinkForm');
-        if (editLinkForm) {
-          let editUploadedLogoUrl = this.editingLink.logo || '';
-          
-          const editLogoInput = document.getElementById('editLogo');
-          editLogoInput.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (file) {
-              editUploadedLogoUrl = await this.uploadLogo(file);
-              if (editUploadedLogoUrl) {
-                document.getElementById('editLogoStatus').textContent = 'LOGO UPLOADED';
-              }
-            }
-          });
-
-          editLinkForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const name = document.getElementById('editName').value;
-            const url = document.getElementById('editUrl').value;
-            const isPrivate = document.getElementById('editPrivate').checked;
-            await this.handleUpdateLink(this.editingLink.id, name, url, editUploadedLogoUrl, !isPrivate);
-          });
-        }
+      async submitEditLink() {
+        const name = document.getElementById('editName').value;
+        const url = document.getElementById('editUrl').value;
+        const isPrivate = document.getElementById('editPrivate').checked;
+        await this.handleUpdateLink(this.editingLink.id, name, url, this.editingLink.logo || '', !isPrivate);
       }
     }
 
