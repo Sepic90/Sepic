@@ -1,89 +1,874 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Welcome to Firebase Hosting</title>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>sepic</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+  <div id="root"></div>
 
-    <!-- update the version number as needed -->
-    <script defer src="/__/firebase/12.3.0/firebase-app-compat.js"></script>
-    <!-- include only the Firebase features as you need -->
-    <script defer src="/__/firebase/12.3.0/firebase-auth-compat.js"></script>
-    <script defer src="/__/firebase/12.3.0/firebase-database-compat.js"></script>
-    <script defer src="/__/firebase/12.3.0/firebase-firestore-compat.js"></script>
-    <script defer src="/__/firebase/12.3.0/firebase-functions-compat.js"></script>
-    <script defer src="/__/firebase/12.3.0/firebase-messaging-compat.js"></script>
-    <script defer src="/__/firebase/12.3.0/firebase-storage-compat.js"></script>
-    <script defer src="/__/firebase/12.3.0/firebase-analytics-compat.js"></script>
-    <script defer src="/__/firebase/12.3.0/firebase-remote-config-compat.js"></script>
-    <script defer src="/__/firebase/12.3.0/firebase-performance-compat.js"></script>
-    <!-- 
-      initialize the SDK after all desired features are loaded, set useEmulator to false
-      to avoid connecting the SDK to running emulators.
-    -->
-    <script defer src="/__/firebase/init.js?useEmulator=true"></script>
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+    import { 
+      getAuth, 
+      signInWithEmailAndPassword, 
+      signOut,
+      onAuthStateChanged 
+    } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+    import {
+      getFirestore,
+      collection,
+      getDocs,
+      addDoc,
+      updateDoc,
+      deleteDoc,
+      doc
+    } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+    import {
+      getStorage,
+      ref,
+      getDownloadURL,
+      listAll
+    } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
 
-    <style media="screen">
-      body { background: #ECEFF1; color: rgba(0,0,0,0.87); font-family: Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; }
-      #message { background: white; max-width: 360px; margin: 100px auto 16px; padding: 32px 24px; border-radius: 3px; }
-      #message h2 { color: #ffa100; font-weight: bold; font-size: 16px; margin: 0 0 8px; }
-      #message h1 { font-size: 22px; font-weight: 300; color: rgba(0,0,0,0.6); margin: 0 0 16px;}
-      #message p { line-height: 140%; margin: 16px 0 24px; font-size: 14px; }
-      #message a { display: block; text-align: center; background: #039be5; text-transform: uppercase; text-decoration: none; color: white; padding: 16px; border-radius: 4px; }
-      #message, #message a { box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); }
-      #load { color: rgba(0,0,0,0.4); text-align: center; font-size: 13px; }
-      @media (max-width: 600px) {
-        body, #message { margin-top: 0; background: white; box-shadow: none; }
-        body { border-top: 16px solid #ffa100; }
+    const firebaseConfig = {
+      apiKey: "AIzaSyDlY-8BMRUH0GxPSIBRuExCX2cL9E9zd3Q",
+      authDomain: "sepic-426e1.firebaseapp.com",
+      projectId: "sepic-426e1",
+      storageBucket: "sepic-426e1.firebasestorage.app",
+      messagingSenderId: "233022179085",
+      appId: "1:233022179085:web:2a9c92c3e6aaac462c5244"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const storage = getStorage(app);
+
+    class SepicHub {
+      constructor() {
+        this.user = null;
+        this.links = [];
+        this.photos = [];
+        this.backgroundPhotos = [];
+        this.currentBgIndex = 0;
+        this.activeSection = 'apps';
+        this.showAdmin = false;
+        this.editingLink = null;
+        this.lightboxPhoto = null;
+        this.photosLoading = true;
+        this.showLoginPopup = false;
+        this.init();
       }
-    </style>
-  </head>
-  <body>
-    <div id="message">
-      <h2>Welcome</h2>
-      <h1>Firebase Hosting Setup Complete</h1>
-      <p>You're seeing this because you've successfully setup Firebase Hosting. Now it's time to go build something extraordinary!</p>
-      <a target="_blank" href="https://firebase.google.com/docs/hosting/">Open Hosting Documentation</a>
-    </div>
-    <p id="load">Firebase SDK Loading&hellip;</p>
 
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        const loadEl = document.querySelector('#load');
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
-        // // The Firebase SDK is initialized and available here!
-        //
-        // firebase.auth().onAuthStateChanged(user => { });
-        // firebase.database().ref('/path/to/ref').on('value', snapshot => { });
-        // firebase.firestore().doc('/foo/bar').get().then(() => { });
-        // firebase.functions().httpsCallable('yourFunction')().then(() => { });
-        // firebase.messaging().requestPermission().then(() => { });
-        // firebase.storage().ref('/path/to/ref').getDownloadURL().then(() => { });
-        // firebase.analytics(); // call to activate
-        // firebase.analytics().logEvent('tutorial_completed');
-        // firebase.performance(); // call to activate
-        //
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+      init() {
+        onAuthStateChanged(auth, (user) => {
+          this.user = user;
+          this.render();
+        });
+        this.fetchLinks();
+        this.fetchPhotos();
+        this.startBackgroundRotation();
+      }
 
+      async fetchLinks() {
         try {
-          let app = firebase.app();
-          let features = [
-            'auth', 
-            'database', 
-            'firestore',
-            'functions',
-            'messaging', 
-            'storage', 
-            'analytics', 
-            'remoteConfig',
-            'performance',
-          ].filter(feature => typeof app[feature] === 'function');
-          loadEl.textContent = `Firebase SDK loaded with ${features.join(', ')}`;
-        } catch (e) {
-          console.error(e);
-          loadEl.textContent = 'Error loading the Firebase SDK, check the console.';
+          const linksCollection = collection(db, 'links');
+          const querySnapshot = await getDocs(linksCollection);
+          this.links = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+          this.links.sort((a, b) => {
+            const aTime = a.createdAt?.toMillis() || 0;
+            const bTime = b.createdAt?.toMillis() || 0;
+            return aTime - bTime;
+          });
+          this.render();
+        } catch (err) {
+          console.error('Error fetching links:', err);
         }
-      });
-    </script>
-  </body>
+      }
+
+      async fetchPhotos() {
+        try {
+          console.log('Fetching photos from gallery...');
+          const galleryRef = ref(storage, 'gallery');
+          const result = await listAll(galleryRef);
+          
+          console.log('Found items:', result.items.length);
+          
+          if (result.items.length === 0) {
+            console.warn('No photos found in gallery folder');
+            this.photosLoading = false;
+            this.render();
+            return;
+          }
+          
+          const photoPromises = result.items.map(async (itemRef) => {
+            try {
+              const url = await getDownloadURL(itemRef);
+              console.log('Got photo URL:', url);
+              return url;
+            } catch (err) {
+              console.error('Error getting download URL for', itemRef.name, err);
+              return null;
+            }
+          });
+          
+          const photoUrls = await Promise.all(photoPromises);
+          this.photos = photoUrls.filter(url => url !== null);
+          
+          console.log('Total photos loaded:', this.photos.length);
+          
+          // Shuffle photos randomly
+          this.photos = this.photos.sort(() => Math.random() - 0.5);
+          
+          // Use first 3 photos for background rotation
+          this.backgroundPhotos = this.photos.slice(0, Math.min(3, this.photos.length));
+          
+          this.photosLoading = false;
+          this.render();
+        } catch (err) {
+          console.error('Error fetching photos:', err);
+          console.error('Error details:', err.message);
+          this.photosLoading = false;
+          this.render();
+        }
+      }
+
+      startBackgroundRotation() {
+        setInterval(() => {
+          if (this.backgroundPhotos.length > 1) {
+            this.currentBgIndex = (this.currentBgIndex + 1) % this.backgroundPhotos.length;
+            this.updateBackground();
+          }
+        }, 8000);
+      }
+
+      updateBackground() {
+        const bgElements = document.querySelectorAll('.bg-layer');
+        bgElements.forEach((el, index) => {
+          if (index === this.currentBgIndex) {
+            el.style.opacity = '1';
+          } else {
+            el.style.opacity = '0';
+          }
+        });
+      }
+
+      async handleLogin(email, password) {
+        try {
+          await signInWithEmailAndPassword(auth, email, password);
+        } catch (err) {
+          alert('Invalid credentials');
+        }
+      }
+
+      async handleLogout() {
+        await signOut(auth);
+        this.showAdmin = false;
+        this.render();
+      }
+
+      generateRandomColor() {
+        const colors = [
+          '#00CED1', // cyan
+          '#FF1493', // magenta
+          '#FFD700', // yellow
+          '#FF6347', // tomato
+          '#32CD32', // lime
+          '#9370DB', // purple
+          '#FF8C00', // orange
+          '#00FA9A', // spring green
+          '#FF69B4', // hot pink
+          '#4169E1'  // royal blue
+        ];
+        return colors[Math.floor(Math.random() * colors.length)];
+      }
+
+      async handleAddLink(name, url, isPublic) {
+        if (!name || !url) {
+          alert('Please fill in both name and URL');
+          return;
+        }
+        try {
+          await addDoc(collection(db, 'links'), {
+            name: name.toUpperCase(),
+            url: url,
+            color: this.generateRandomColor(),
+            isPublic: isPublic,
+            createdAt: new Date()
+          });
+          await this.fetchLinks();
+        } catch (err) {
+          console.error('Error adding link:', err);
+          alert('Error adding link: ' + err.message);
+        }
+      }
+
+      async handleUpdateLink(id, name, url, color, isPublic) {
+        try {
+          const linkRef = doc(db, 'links', id);
+          await updateDoc(linkRef, {
+            name: name.toUpperCase(),
+            url: url,
+            color: color,
+            isPublic: isPublic
+          });
+          this.editingLink = null;
+          await this.fetchLinks();
+        } catch (err) {
+          console.error('Error updating link:', err);
+        }
+      }
+
+      async handleDeleteLink(id) {
+        if (!confirm('Delete this link?')) return;
+        try {
+          await deleteDoc(doc(db, 'links', id));
+          if (this.editingLink && this.editingLink.id === id) {
+            this.editingLink = null;
+          }
+          await this.fetchLinks();
+        } catch (err) {
+          console.error('Error deleting link:', err);
+        }
+      }
+
+      openLightbox(photoUrl) {
+        this.lightboxPhoto = photoUrl;
+        this.render();
+      }
+
+      closeLightbox() {
+        this.lightboxPhoto = null;
+        this.render();
+      }
+
+      render() {
+        const visibleLinks = this.user ? this.links : this.links.filter(link => link.isPublic);
+        
+        document.getElementById('root').innerHTML = `
+          <style>
+            * {
+              font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+              font-weight: 300;
+              letter-spacing: 0.05em;
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+            }
+
+            body {
+              overflow-x: hidden;
+            }
+
+            @keyframes fadeIn {
+              from { opacity: 0; transform: translateY(10px); }
+              to { opacity: 1; transform: translateY(0); }
+            }
+
+            @keyframes panRight {
+              0% { transform: scale(1.2) translate(0, 0); }
+              100% { transform: scale(1.2) translate(-5%, 0); }
+            }
+
+            @keyframes panLeft {
+              0% { transform: scale(1.2) translate(-5%, 0); }
+              100% { transform: scale(1.2) translate(0, 0); }
+            }
+
+            @keyframes panDown {
+              0% { transform: scale(1.2) translate(0, 0); }
+              100% { transform: scale(1.2) translate(0, -5%); }
+            }
+
+            .fade-in {
+              animation: fadeIn 0.6s ease-out forwards;
+            }
+
+            .bg-container {
+              position: fixed;
+              top: 0;
+              left: 0;
+              width: 100%;
+              height: 100%;
+              z-index: -1;
+            }
+
+            .bg-layer {
+              position: absolute;
+              top: -10%;
+              left: -10%;
+              width: 120%;
+              height: 120%;
+              background-size: cover;
+              background-position: center;
+              filter: blur(12px);
+              opacity: 0;
+              transition: opacity 2s ease-in-out;
+            }
+
+            .bg-layer:nth-child(1) {
+              opacity: 1;
+              animation: panRight 20s ease-in-out infinite alternate;
+            }
+
+            .bg-layer:nth-child(2) {
+              animation: panLeft 25s ease-in-out infinite alternate;
+            }
+
+            .bg-layer:nth-child(3) {
+              animation: panDown 30s ease-in-out infinite alternate;
+            }
+
+            .bg-overlay {
+              position: absolute;
+              top: 0;
+              left: 0;
+              width: 100%;
+              height: 100%;
+              background: rgba(0, 0, 0, 0.5);
+            }
+
+            .logo-container {
+              display: flex;
+              justify-content: center;
+              margin-bottom: 0.25rem;
+            }
+
+            .logo-img {
+              width: 80px;
+              height: 80px;
+              object-fit: contain;
+              filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.3));
+            }
+
+            h1 {
+              font-weight: 700;
+              letter-spacing: -0.02em;
+              color: white;
+              font-size: 2rem;
+              margin-bottom: 2rem;
+              text-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
+              text-align: center;
+            }
+
+            .nav-tabs {
+              display: flex;
+              gap: 2rem;
+              margin-bottom: 3rem;
+              justify-content: center;
+            }
+
+            .nav-tab {
+              font-size: 0.875rem;
+              color: rgba(255, 255, 255, 0.5);
+              cursor: pointer;
+              transition: all 0.2s ease;
+              border: none;
+              background: none;
+              padding: 0.5rem 0;
+              position: relative;
+            }
+
+            .nav-tab:hover {
+              color: rgba(255, 255, 255, 0.8);
+            }
+
+            .nav-tab.active {
+              color: rgba(255, 255, 255, 1);
+            }
+
+            .nav-tab.active::after {
+              content: '';
+              position: absolute;
+              bottom: 0;
+              left: 0;
+              right: 0;
+              height: 1px;
+              background: rgba(255, 255, 255, 0.8);
+            }
+
+            .section {
+              display: none;
+            }
+
+            .section.active {
+              display: block;
+            }
+
+            .link-item {
+              transition: all 0.2s ease;
+              text-decoration: none;
+              display: flex;
+              align-items: center;
+              background: white;
+              border-radius: 0;
+              overflow: hidden;
+              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            }
+
+            .link-item:hover {
+              transform: translateY(-2px);
+              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            }
+
+            .link-color-bar {
+              width: 12px;
+              align-self: stretch;
+              flex-shrink: 0;
+            }
+
+            .link-name {
+              padding: 0.625rem 1.5rem;
+              color: #000;
+              font-size: 1.25rem;
+              font-weight: 500;
+              flex: 1;
+            }
+
+            .link-wrapper {
+              margin-bottom: 1rem;
+            }
+
+            .photo-grid {
+              display: grid;
+              grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+              gap: 1rem;
+              width: 100%;
+            }
+
+            .photo-item {
+              position: relative;
+              cursor: pointer;
+              overflow: hidden;
+              border-radius: 4px;
+              aspect-ratio: 16/9;
+              background: rgba(255, 255, 255, 0.05);
+            }
+
+            .photo-item img {
+              width: 100%;
+              height: 100%;
+              object-fit: cover;
+              transition: transform 0.3s ease;
+            }
+
+            .photo-item:hover img {
+              transform: scale(1.05);
+            }
+
+            .lightbox {
+              position: fixed;
+              top: 0;
+              left: 0;
+              width: 100%;
+              height: 100%;
+              background: rgba(0, 0, 0, 0.95);
+              z-index: 1000;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              padding: 2rem;
+              animation: fadeIn 0.2s ease;
+            }
+
+            .lightbox img {
+              max-width: 90%;
+              max-height: 90%;
+              object-fit: contain;
+              box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+            }
+
+            .lightbox-close {
+              position: absolute;
+              top: 2rem;
+              right: 2rem;
+              color: white;
+              font-size: 2rem;
+              cursor: pointer;
+              background: none;
+              border: none;
+              width: 40px;
+              height: 40px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              transition: opacity 0.2s;
+            }
+
+            .lightbox-close:hover {
+              opacity: 0.6;
+            }
+
+            .login-link {
+              color: rgba(255, 255, 255, 0.5);
+              font-size: 0.75rem;
+              cursor: pointer;
+              text-decoration: none;
+              transition: color 0.2s;
+              display: inline-block;
+              margin-top: 2rem;
+            }
+
+            .login-link:hover {
+              color: rgba(255, 255, 255, 0.8);
+            }
+
+            .login-popup {
+              position: fixed;
+              top: 0;
+              left: 0;
+              width: 100%;
+              height: 100%;
+              background: rgba(0, 0, 0, 0.8);
+              backdrop-filter: blur(10px);
+              z-index: 1000;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              animation: fadeIn 0.2s ease;
+            }
+
+            .login-popup-content {
+              background: rgba(30, 30, 30, 0.95);
+              border: 1px solid rgba(255, 255, 255, 0.1);
+              border-radius: 8px;
+              padding: 2rem;
+              max-width: 400px;
+              width: 90%;
+            }
+
+            .login-popup-close {
+              color: rgba(255, 255, 255, 0.6);
+              font-size: 1.5rem;
+              cursor: pointer;
+              background: none;
+              border: none;
+              float: right;
+              transition: color 0.2s;
+            }
+
+            .login-popup-close:hover {
+              color: rgba(255, 255, 255, 1);
+            }
+
+            .admin-toggle {
+              position: fixed;
+              bottom: 2rem;
+              right: 2rem;
+              background: rgba(255, 255, 255, 0.1);
+              backdrop-filter: blur(10px);
+              border: 1px solid rgba(255, 255, 255, 0.2);
+              color: rgba(255, 255, 255, 0.8);
+              padding: 0.75rem 1.5rem;
+              border-radius: 20px;
+              cursor: pointer;
+              font-size: 0.75rem;
+              transition: all 0.2s;
+              z-index: 100;
+            }
+
+            .admin-toggle:hover {
+              background: rgba(255, 255, 255, 0.15);
+              color: rgba(255, 255, 255, 1);
+            }
+
+            .admin-panel {
+              position: fixed;
+              top: 0;
+              right: 0;
+              width: 100%;
+              max-width: 500px;
+              height: 100%;
+              background: rgba(20, 20, 20, 0.98);
+              backdrop-filter: blur(20px);
+              border-left: 1px solid rgba(255, 255, 255, 0.1);
+              padding: 2rem;
+              overflow-y: auto;
+              z-index: 200;
+              animation: slideIn 0.3s ease;
+            }
+
+            @keyframes slideIn {
+              from { transform: translateX(100%); }
+              to { transform: translateX(0); }
+            }
+
+            .input-field {
+              transition: border-color 0.15s ease;
+              background: rgba(255, 255, 255, 0.05);
+              color: white;
+              border: 1px solid rgba(255, 255, 255, 0.2);
+              border-radius: 4px;
+              padding: 0.75rem;
+              width: 100%;
+              font-size: 0.875rem;
+            }
+
+            .input-field::placeholder {
+              color: rgba(255, 255, 255, 0.4);
+            }
+
+            .input-field:focus {
+              outline: none;
+              border-color: rgba(255, 255, 255, 0.5);
+              background: rgba(255, 255, 255, 0.08);
+            }
+
+            .btn {
+              background: rgba(255, 255, 255, 0.1);
+              color: rgba(255, 255, 255, 0.9);
+              border: 1px solid rgba(255, 255, 255, 0.2);
+              border-radius: 4px;
+              padding: 0.75rem 1.5rem;
+              cursor: pointer;
+              font-size: 0.875rem;
+              transition: all 0.2s;
+            }
+
+            .btn:hover {
+              background: rgba(255, 255, 255, 0.15);
+              color: white;
+            }
+
+            .btn:disabled {
+              opacity: 0.4;
+              cursor: not-allowed;
+            }
+
+            .label-text {
+              color: rgba(255, 255, 255, 0.6);
+              font-size: 0.75rem;
+            }
+
+            .login-container {
+              max-width: 300px;
+              margin: 0 auto;
+            }
+
+            @media (max-width: 768px) {
+              h1 { font-size: 1.5rem; }
+              .logo-img { width: 60px; height: 60px; }
+              .link-name { font-size: 1rem; padding: 0.5rem 1rem; }
+              .photo-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+              }
+              .admin-panel {
+                max-width: 100%;
+              }
+            }
+          </style>
+
+          <div class="bg-container">
+            ${this.backgroundPhotos.length > 0 ? this.backgroundPhotos.map((photo, index) => `
+              <div class="bg-layer" style="background-image: url('${photo}');"></div>
+            `).join('') : '<div class="bg-layer" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"></div>'}
+            <div class="bg-overlay"></div>
+          </div>
+
+          <div style="min-height: 100vh; padding: 3rem 2rem; position: relative;">
+            <div style="max-width: 900px; margin: 0 auto;">
+              
+              <div class="fade-in" style="margin-bottom: 3rem;">
+                <div class="logo-container">
+                  <img src="https://firebasestorage.googleapis.com/v0/b/sepic-426e1.firebasestorage.app/o/logo%2FSepic%20logo%20white%20outline%20500px.png?alt=media&token=96032cf7-a8bc-4f89-88f7-89954f2158e3" alt="sepic" class="logo-img" />
+                </div>
+                <h1>sepic</h1>
+              </div>
+
+              ${this.user || visibleLinks.length > 0 || this.photos.length > 0 ? `
+                <div class="nav-tabs fade-in">
+                  <button class="nav-tab ${this.activeSection === 'apps' ? 'active' : ''}" onclick="app.activeSection = 'apps'; app.render();">
+                    APPS
+                  </button>
+                  <button class="nav-tab ${this.activeSection === 'photos' ? 'active' : ''}" onclick="app.activeSection = 'photos'; app.render();">
+                    PHOTOS
+                  </button>
+                </div>
+              ` : ''}
+
+              <div class="section ${this.activeSection === 'apps' ? 'active' : ''} fade-in">
+                ${visibleLinks.length > 0 ? `
+                  <div style="max-width: 600px; margin: 0 auto;">
+                    ${visibleLinks.map(link => `
+                      <div class="link-wrapper">
+                        <a href="${link.url}" target="_blank" rel="noopener noreferrer" class="link-item">
+                          <div class="link-color-bar" style="background-color: ${link.color || '#00CED1'};"></div>
+                          <div class="link-name">${link.name}</div>
+                        </a>
+                      </div>
+                    `).join('')}
+                  </div>
+                ` : `
+                  <div style="text-align: center; color: rgba(255, 255, 255, 0.5); font-size: 0.875rem;">
+                    No apps yet
+                  </div>
+                `}
+                
+                ${!this.user ? `
+                  <div style="text-align: center;">
+                    <a class="login-link" onclick="app.showLoginPopup = true; app.render();">Login</a>
+                  </div>
+                ` : ''}
+              </div>
+
+              <div class="section ${this.activeSection === 'photos' ? 'active' : ''} fade-in">
+                ${this.photosLoading ? `
+                  <div style="text-align: center; color: rgba(255, 255, 255, 0.5); font-size: 0.875rem;">
+                    Loading photos...
+                  </div>
+                ` : this.photos.length > 0 ? `
+                  <div class="photo-grid">
+                    ${this.photos.map(photo => `
+                      <div class="photo-item" onclick="app.openLightbox('${photo}')">
+                        <img src="${photo}" alt="Gallery photo" loading="lazy" />
+                      </div>
+                    `).join('')}
+                  </div>
+                ` : `
+                  <div style="text-align: center; color: rgba(255, 255, 255, 0.5); font-size: 0.875rem;">
+                    No photos found. Make sure photos are uploaded to the 'gallery' folder in Firebase Storage.
+                  </div>
+                `}
+              </div>
+            </div>
+          </div>
+
+          ${this.showLoginPopup && !this.user ? `
+            <div class="login-popup" onclick="if(event.target === event.currentTarget) { app.showLoginPopup = false; app.render(); }">
+              <div class="login-popup-content">
+                <button class="login-popup-close" onclick="app.showLoginPopup = false; app.render();">✕</button>
+                <div style="clear: both; margin-bottom: 2rem;">
+                  <h2 style="color: white; font-size: 1.25rem; font-weight: 500;">Login</h2>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                  <input type="email" id="email" placeholder="EMAIL" class="input-field" />
+                  <input type="password" id="password" placeholder="PASSWORD" class="input-field" />
+                  <button onclick="app.doLogin()" class="btn">
+                    ENTER
+                  </button>
+                </div>
+              </div>
+            </div>
+          ` : ''}
+
+          ${this.user && !this.showAdmin ? `
+            <button class="admin-toggle" onclick="app.showAdmin = true; app.render();">
+              ADMIN
+            </button>
+          ` : ''}
+
+          ${this.user && this.showAdmin ? `
+            <div class="admin-panel">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <div style="font-size: 1rem; color: white;">ADMIN</div>
+                <div style="display: flex; gap: 1rem;">
+                  <button class="label-text" style="border: none; background: none; cursor: pointer;" onclick="app.handleLogout();">LOGOUT</button>
+                  <button class="label-text" style="border: none; background: none; cursor: pointer;" onclick="app.showAdmin = false; app.render();">✕</button>
+                </div>
+              </div>
+
+              <div style="margin-bottom: 3rem;">
+                <div class="label-text" style="margin-bottom: 1.5rem;">ADD NEW LINK</div>
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                  <input type="text" id="newName" placeholder="LINK TEXT" class="input-field" />
+                  <input type="url" id="newUrl" placeholder="URL" class="input-field" />
+                  <label style="display: flex; align-items: center; gap: 0.5rem;" class="label-text">
+                    <input type="checkbox" id="newPrivate" />
+                    PRIVATE
+                  </label>
+                  <button onclick="app.submitAddLink()" class="btn">
+                    ADD LINK
+                  </button>
+                </div>
+              </div>
+
+              <div style="padding-top: 2rem; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+                <div class="label-text" style="margin-bottom: 1.5rem;">ALL LINKS</div>
+                ${this.links.map(link => `
+                  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                      <div style="width: 8px; height: 24px; background-color: ${link.color || '#00CED1'}; border-radius: 0;"></div>
+                      <span style="font-size: 0.875rem; color: white;">${link.name}</span>
+                      ${!link.isPublic ? '<span class="label-text">[PRIVATE]</span>' : ''}
+                    </div>
+                    <div style="display: flex; gap: 1rem; font-size: 0.75rem;">
+                      <button class="label-text" style="border: none; background: none; cursor: pointer;" onclick='app.editingLink = ${JSON.stringify(link)}; app.render();'>EDIT</button>
+                      <button class="label-text" style="border: none; background: none; cursor: pointer; opacity: 0.5;" onclick="app.handleDeleteLink('${link.id}');">DELETE</button>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+
+              ${this.editingLink ? `
+                <div style="padding-top: 2rem; margin-top: 2rem; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+                  <div class="label-text" style="margin-bottom: 1.5rem;">EDIT LINK</div>
+                  <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    <input type="text" id="editName" value="${this.editingLink.name}" placeholder="LINK TEXT" class="input-field" />
+                    <input type="url" id="editUrl" value="${this.editingLink.url}" placeholder="URL" class="input-field" />
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                      <span class="label-text">COLOR:</span>
+                      <input type="color" id="editColor" value="${this.editingLink.color || '#00CED1'}" style="width: 60px; height: 40px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 4px; cursor: pointer; background: transparent;" />
+                    </div>
+                    <label style="display: flex; align-items: center; gap: 0.5rem;" class="label-text">
+                      <input type="checkbox" id="editPrivate" ${!this.editingLink.isPublic ? 'checked' : ''} />
+                      PRIVATE
+                    </label>
+                    <div style="display: flex; gap: 1rem;">
+                      <button onclick="app.submitEditLink()" class="btn">SAVE</button>
+                      <button onclick="app.editingLink = null; app.render();" class="btn">CANCEL</button>
+                    </div>
+                  </div>
+                </div>
+              ` : ''}
+            </div>
+          ` : ''}
+
+          ${this.lightboxPhoto ? `
+            <div class="lightbox" onclick="app.closeLightbox()">
+              <button class="lightbox-close">✕</button>
+              <img src="${this.lightboxPhoto}" alt="Photo" onclick="event.stopPropagation();" />
+            </div>
+          ` : ''}
+        `;
+
+        setTimeout(() => this.updateBackground(), 100);
+      }
+
+      async doLogin() {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        await this.handleLogin(email, password);
+        this.showLoginPopup = false;
+      }
+
+      async submitAddLink() {
+        const name = document.getElementById('newName').value;
+        const url = document.getElementById('newUrl').value;
+        const isPrivate = document.getElementById('newPrivate').checked;
+        await this.handleAddLink(name, url, !isPrivate);
+        document.getElementById('newName').value = '';
+        document.getElementById('newUrl').value = '';
+        document.getElementById('newPrivate').checked = false;
+      }
+
+      async submitEditLink() {
+        const name = document.getElementById('editName').value;
+        const url = document.getElementById('editUrl').value;
+        const color = document.getElementById('editColor').value;
+        const isPrivate = document.getElementById('editPrivate').checked;
+        await this.handleUpdateLink(this.editingLink.id, name, url, color, !isPrivate);
+      }
+    }
+
+    if (!window.app) {
+      window.app = new SepicHub();
+    }
+  </script>
+</body>
 </html>
