@@ -872,7 +872,7 @@
 
           <div class="bg-container">
             ${this.backgroundPhotos.length > 0 ? this.backgroundPhotos.map((photo, index) => `
-              <div class="bg-layer" style="background-image: url('${photo}');"></div>
+              <div class="bg-layer" style="background-image: url('${photo}'); opacity: ${index === this.currentBgIndex ? '1' : '0'};"></div>
             `).join('') : '<div class="bg-layer" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"></div>'}
             <div class="bg-overlay"></div>
           </div>
